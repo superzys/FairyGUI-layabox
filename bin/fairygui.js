@@ -1452,7 +1452,7 @@ var GObject=(function(){
 
 	__getset(0,__proto,'internalVisible',function(){
 		return this._internalVisible && (!this._group || this._group.internalVisible)
-		&& !this._displayObject._$P["maskParent"];
+		&& !this._displayObject._cacheStyle.maskParent;
 	});
 
 	__getset(0,__proto,'icon',function(){
@@ -8800,7 +8800,7 @@ var PixelHitTest=(function(_super){
 
 	__class(PixelHitTest,'fairygui.utils.PixelHitTest',_super);
 	var __proto=PixelHitTest.prototype;
-	__proto.isHit=function(x,y){
+	__proto.contains=function(x,y){
 		x=Math.floor((x / this.scaleX-this.offsetX)*this._data.scale);
 		y=Math.floor((y / this.scaleY-this.offsetY)*this._data.scale);
 		if (x < 0 || y < 0 || x >=this._data.pixelWidth)
@@ -10792,46 +10792,6 @@ var GGraph=(function(_super){
 })(GObject)
 
 
-//class fairygui.gears.GearText extends fairygui.gears.GearBase
-var GearText=(function(_super){
-	function GearText(owner){
-		this._storage=null;
-		this._default=null;
-		GearText.__super.call(this,owner);
-	}
-
-	__class(GearText,'fairygui.gears.GearText',_super);
-	var __proto=GearText.prototype;
-	__proto.init=function(){
-		this._default=this._owner.text;
-		this._storage={};
-	}
-
-	__proto.addStatus=function(pageId,buffer){
-		if(pageId==null)
-			this._default=buffer.readS();
-		else
-		this._storage[pageId]=buffer.readS();
-	}
-
-	__proto.apply=function(){
-		this._owner._gearLocked=true;
-		var data=this._storage[this._controller.selectedPageId];
-		if(data!==undefined)
-			this._owner.text=data;
-		else
-		this._owner.text=this._default;
-		this._owner._gearLocked=false;
-	}
-
-	__proto.updateState=function(){
-		this._storage[this._controller.selectedPageId]=this._owner.text;
-	}
-
-	return GearText;
-})(GearBase)
-
-
 //class fairygui.GGroup extends fairygui.GObject
 var GGroup=(function(_super){
 	function GGroup(){
@@ -11186,6 +11146,46 @@ var GGroup=(function(_super){
 
 	return GGroup;
 })(GObject)
+
+
+//class fairygui.gears.GearText extends fairygui.gears.GearBase
+var GearText=(function(_super){
+	function GearText(owner){
+		this._storage=null;
+		this._default=null;
+		GearText.__super.call(this,owner);
+	}
+
+	__class(GearText,'fairygui.gears.GearText',_super);
+	var __proto=GearText.prototype;
+	__proto.init=function(){
+		this._default=this._owner.text;
+		this._storage={};
+	}
+
+	__proto.addStatus=function(pageId,buffer){
+		if(pageId==null)
+			this._default=buffer.readS();
+		else
+		this._storage[pageId]=buffer.readS();
+	}
+
+	__proto.apply=function(){
+		this._owner._gearLocked=true;
+		var data=this._storage[this._controller.selectedPageId];
+		if(data!==undefined)
+			this._owner.text=data;
+		else
+		this._owner.text=this._default;
+		this._owner._gearLocked=false;
+	}
+
+	__proto.updateState=function(){
+		this._storage[this._controller.selectedPageId]=this._owner.text;
+	}
+
+	return GearText;
+})(GearBase)
 
 
 //class fairygui.GImage extends fairygui.GObject
@@ -15605,16 +15605,19 @@ var GRichTextField=(function(_super){
 		},function(value){
 		if (this._color !=value){
 			this._color=value;
-			this.div.color=value;
+			this.div.style.color=value;
 			if (this._gearColor.controller)
 				this._gearColor.updateState();
 		}
 	});
 
 	__getset(0,__proto,'font',function(){
-		return this.div.style.fontFamily;
+		return this.div.style.font;
 		},function(value){
-		this.div.style.fontFamily=value;
+		if(value)
+			this.div.style.font=value;
+		else
+		this.div.style.font=UIConfig$1.defaultFont;
 	});
 
 	__getset(0,__proto,'leading',function(){
@@ -17069,16 +17072,14 @@ var Image$1=(function(_super){
 		var w=this.width;
 		var h=this.height;
 		var g=this.graphics;
+		g.clear();
 		if(this._tex==null || w==0 || h==0){
-			g.clear();
 			return;
 		}
 		if(this._scaleByTile){
-			g.clear();
 			g.fillTexture(this._tex,0,0,w,h);
 		}
 		else if(this._scale9Grid!=null){
-			g.clear();
 			var tw=this._tex.width;
 			var th=this._tex.height;
 			var left=this._scale9Grid.x;
@@ -17108,10 +17109,10 @@ var Image$1=(function(_super){
 			};
 			var centerWidth=Math.max(w-left-right,0);
 			var centerHeight=Math.max(h-top-bottom,0);
-			left && top && g.drawTexture(fairygui.display.Image.getTexture(this._tex,0,0,left,top),0,0,left,top);
-			right && top && g.drawTexture(fairygui.display.Image.getTexture(this._tex,tw-right,0,right,top),w-right,0,right,top);
-			left && bottom && g.drawTexture(fairygui.display.Image.getTexture(this._tex,0,th-bottom,left,bottom),0,h-bottom,left,bottom);
-			right && bottom && g.drawTexture(fairygui.display.Image.getTexture(this._tex,tw-right,th-bottom,right,bottom),w-right,h-bottom,right,bottom);
+			left && top && g.drawImage(fairygui.display.Image.getTexture(this._tex,0,0,left,top),0,0,left,top);
+			right && top && g.drawImage(fairygui.display.Image.getTexture(this._tex,tw-right,0,right,top),w-right,0,right,top);
+			left && bottom && g.drawImage(fairygui.display.Image.getTexture(this._tex,0,th-bottom,left,bottom),0,h-bottom,left,bottom);
+			right && bottom && g.drawImage(fairygui.display.Image.getTexture(this._tex,tw-right,th-bottom,right,bottom),w-right,h-bottom,right,bottom);
 			centerWidth && top && this.drawTexture(0,fairygui.display.Image.getTexture(this._tex,left,0,tw-left-right,top),left,0,centerWidth,top);
 			centerWidth && bottom && this.drawTexture(1,fairygui.display.Image.getTexture(this._tex,left,th-bottom,tw-left-right,bottom),left,h-bottom,centerWidth,bottom);
 			centerHeight && left && this.drawTexture(2,fairygui.display.Image.getTexture(this._tex,0,top,left,th-top-bottom),0,top,left,centerHeight);
@@ -17119,7 +17120,7 @@ var Image$1=(function(_super){
 			centerWidth && centerHeight && this.drawTexture(4,fairygui.display.Image.getTexture(this._tex,left,top,tw-left-right,th-top-bottom),left,top,centerWidth,centerHeight);
 		}
 		else {
-			g.cleanByTexture(this._tex,0,0,w,h);
+			g.drawImage(this._tex,0,0,w,h);
 		}
 	}
 
@@ -17127,7 +17128,7 @@ var Image$1=(function(_super){
 		(width===void 0)&& (width=0);
 		(height===void 0)&& (height=0);
 		if(part==-1 || (this._tileGridIndice & (1<<part))==0)
-			this.graphics.drawTexture(tex,x,y,width,height);
+			this.graphics.drawImage(tex,x,y,width,height);
 		else
 		this.graphics.fillTexture(tex,x,y,width,height);
 	}
@@ -17174,11 +17175,9 @@ var Image$1=(function(_super){
 		if (width <=0)width=1;
 		if (height <=0)height=1;
 		tex.$_GID || (tex.$_GID=Utils.getGID())
-		var key=tex.$_GID+"."+x+"."+y+"."+width+"."+height;
-		var texture=WeakObject.I.get(key);
-		if (!texture||!texture.source){
+		var texture;
+		if (!texture||!texture._getSource()){
 			texture=Texture.createFromTexture(tex,x,y,width,height);
-			WeakObject.I.set(key,texture);
 		}
 		return texture;
 	}
@@ -17379,7 +17378,8 @@ var MovieClip$1=(function(_super){
 	__proto.drawFrame=function(){
 		if (this._frameCount>0 && this._frame < this._frames.length){
 			var frame=this._frames[this._frame];
-			this.graphics.cleanByTexture(frame.texture,frame.rect.x,frame.rect.y);
+			this.graphics.clear();
+			this.graphics.drawImage(frame.texture,frame.rect.x,frame.rect.y);
 		}
 		else
 		this.graphics.clear();
@@ -17457,16 +17457,5 @@ var MovieClip$1=(function(_super){
 })(Sprite)
 
 
-	Laya.__init([GList,Transition,AsyncOperation,UIPackage,RelationItem,GBasicTextField,GearColor,EaseManager,GearAnimation,GearLook,GearSize]);
+	Laya.__init([GBasicTextField,GList,AsyncOperation,GearLook,UIPackage,GearColor,Transition,EaseManager,GearAnimation,GearSize,RelationItem]);
 })(window,document,Laya);
-
-if (typeof define === 'function' && define.amd){
-	define('laya.core', ['require', "exports"], function(require, exports) {
-        'use strict';
-        Object.defineProperty(exports, '__esModule', { value: true });
-        for (var i in Laya) {
-			var o = Laya[i];
-            o && o.__isclass && (exports[i] = o);
-        }
-    });
-}
