@@ -7,7 +7,7 @@
 	var Handler=laya.utils.Handler,HitArea=laya.utils.HitArea,Input=laya.display.Input,Loader=laya.net.Loader;
 	var Log=laya.utils.Log,Node=laya.display.Node,Point=laya.maths.Point,Rectangle=laya.maths.Rectangle,Render=laya.renders.Render;
 	var SoundManager=laya.media.SoundManager,Sprite=laya.display.Sprite,Stage=laya.display.Stage,Text=laya.display.Text;
-	var Texture=laya.resource.Texture,Utils=laya.utils.Utils,WeakObject=laya.utils.WeakObject;
+	var Texture=laya.resource.Texture,Utils=laya.utils.Utils;
 Laya.interface('fairygui.IUISource');
 Laya.interface('fairygui.gears.IColorGear');
 Laya.interface('fairygui.gears.IAnimationGear');
@@ -364,13 +364,346 @@ var BMGlyph=(function(){
 })()
 
 
+//class fairygui.display.FillUtils
+var FillUtils=(function(){
+	function FillUtils(){}
+	__class(FillUtils,'fairygui.display.FillUtils');
+	FillUtils.fill=function(w,h,method,origin,clockwise,amount){
+		if(amount<=0)
+			return null;
+		else if(amount>=0.9999)
+		return [0,0,w,0,w,h,0,h];
+		var points;
+		switch(method){
+			case 1:
+				points=fairygui.display.FillUtils.fillHorizontal(w,h,origin,amount);
+				break ;
+			case 2:
+				points=fairygui.display.FillUtils.fillVertical(w,h,origin,amount);
+				break ;
+			case 3:
+				points=fairygui.display.FillUtils.fillRadial90(w,h,origin,clockwise,amount);
+				break ;
+			case 4:
+				points=fairygui.display.FillUtils.fillRadial180(w,h,origin,clockwise,amount);
+				break ;
+			case 5:
+				points=fairygui.display.FillUtils.fillRadial360(w,h,origin,clockwise,amount);
+				break ;
+			}
+		return points;
+	}
+
+	FillUtils.fillHorizontal=function(w,h,origin,amount){
+		var w2=w*amount;
+		if(origin==2 || origin==0)
+			return [0,0,w2,0,w2,h,0,h];
+		else
+		return [w,0,w,h,w-w2,h,w-w2,0];
+	}
+
+	FillUtils.fillVertical=function(w,h,origin,amount){
+		var h2=h*amount;
+		if(origin==2 || origin==0)
+			return [0,0,0,h2,w,h2,w,0];
+		else
+		return [0,h,w,h,w,h-h2,0,h-h2];
+	}
+
+	FillUtils.fillRadial90=function(w,h,origin,clockwise,amount){
+		if(clockwise && (origin==1 || origin==2)
+			|| !clockwise && (origin==0 || origin==3)){
+			amount=1-amount;
+		};
+		var v=NaN,v2=NaN,h2=NaN;
+		v=Math.tan(Math.PI / 2 *amount);
+		h2=w *v;
+		v2=(h2-h)/ h2;
+		var points;
+		switch(origin){
+			case 0:
+				if(clockwise){
+					if(h2<=h)
+						points=[0,0,w,h2,w,0];
+					else
+					points=[0,0,w*(1-v2),h,w,h,w,0];
+				}
+				else{
+					if(h2<=h)
+						points=[0,0,w,h2,w,h,0,h];
+					else
+					points=[0,0,w*(1-v2),h,0,h];
+				}
+				break ;
+			case 1:
+				if(clockwise){
+					if(h2<=h)
+						points=[w,0,0,h2,0,h,w,h];
+					else
+					points=[w,0,w*v2,h,w,h];
+				}
+				else{
+					if(h2<=h)
+						points=[w,0,0,h2,0,0];
+					else
+					points=[w,0,w*v2,h,0,h,0,0];
+				}
+				break ;
+			case 2:
+				if(clockwise){
+					if(h2<=h)
+						points=[0,h,w,h-h2,w,0,0,0];
+					else
+					points=[0,h,w*(1-v2),0,0,0];
+				}
+				else{
+					if(h2<=h)
+						points=[0,h,w,h-h2,w,h];
+					else
+					points=[0,h,w*(1-v2),0,w,0,w,h];
+				}
+				break ;
+			case 3:
+				if(clockwise){
+					if(h2<=h)
+						points=[w,h,0,h-h2,0,h];
+					else
+					points=[w,h,w*v2,0,0,0,0,h];
+				}
+				else{
+					if(h2<=h)
+						points=[w,h,0,h-h2,0,0,w,0];
+					else
+					points=[w,h,w*v2,0,w,0];
+				}
+				break ;
+			}
+		return points;
+	}
+
+	FillUtils.movePoints=function(points,offsetX,offsetY){
+		var cnt=points.length;
+		for(var i=0;i<cnt;i+=2){
+			points[i]+=offsetX;
+			points[i+1]+=offsetY;
+		}
+	}
+
+	FillUtils.fillRadial180=function(w,h,origin,clockwise,amount){
+		var points;
+		switch(origin){
+			case 0:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial90(w/2,h,
+					clockwise?0:1,
+					clockwise,
+					amount);
+					if(clockwise)
+						FillUtils.movePoints(points,w/2,0);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial90(w/2,h,
+					clockwise?1:0,
+					clockwise,
+					amount);
+					if(clockwise)
+						points.push(w,h,w,0);
+					else{
+						FillUtils.movePoints(points,w/2,0);
+						points.push(0,h,0,0);
+					}
+				}
+				break ;
+			case 1:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial90(w/2,h,
+					clockwise?3:2,
+					clockwise,
+					amount);
+					if(!clockwise)
+						FillUtils.movePoints(points,w/2,0);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial90(w/2,h,
+					clockwise?2:3,
+					clockwise,
+					amount);
+					if(clockwise){
+						FillUtils.movePoints(points,w/2,0);
+						points.push(0,0,0,h);
+					}
+					else
+					points.push(w,0,w,h);
+				}
+				break ;
+			case 2:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial90(w,h/2,
+					clockwise?2:0,
+					clockwise,
+					amount);
+					if(!clockwise)
+						FillUtils.movePoints(points,0,h/2);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial90(w,h/2,
+					clockwise?0:2,
+					clockwise,
+					amount);
+					if(clockwise){
+						FillUtils.movePoints(points,0,h/2);
+						points.push(w,0,0,0);
+					}
+					else
+					points.push(w,h,0,h);
+				}
+				break ;
+			case 3:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial90(w,h/2,
+					clockwise?1:3,
+					clockwise,
+					amount);
+					if(clockwise)
+						FillUtils.movePoints(points,0,h/2);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial90(w,h/2,
+					clockwise?3:1,
+					clockwise,
+					amount);
+					if(clockwise)
+						points.push(0,h,w,h);
+					else{
+						FillUtils.movePoints(points,0,h/2);
+						points.push(0,0,w,0);
+					}
+				}
+				break ;
+			}
+		return points;
+	}
+
+	FillUtils.fillRadial360=function(w,h,origin,clockwise,amount){
+		var points;
+		switch(origin){
+			case 0:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial180(w/2,h,
+					clockwise?2:3,
+					clockwise,
+					amount);
+					if(clockwise)
+						FillUtils.movePoints(points,w/2,0);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial180(w/2,h,
+					clockwise?3:2,
+					clockwise,
+					amount);
+					if(clockwise)
+						points.push(w,h,w,0,w/2,0);
+					else{
+						FillUtils.movePoints(points,w/2,0);
+						points.push(0,h,0,0,w/2,0);
+					}
+				}
+				break ;
+			case 1:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial180(w/2,h,
+					clockwise?3:2,
+					clockwise,
+					amount);
+					if(!clockwise)
+						FillUtils.movePoints(points,w/2,0);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial180(w/2,h,
+					clockwise?2:3,
+					clockwise,
+					amount);
+					if(clockwise){
+						FillUtils.movePoints(points,w/2,0);
+						points.push(0,0,0,h,w/2,h);
+					}
+					else
+					points.push(w,0,w,h,w/2,h);
+				}
+				break ;
+			case 2:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial180(w,h/2,
+					clockwise?1:0,
+					clockwise,
+					amount);
+					if(!clockwise)
+						FillUtils.movePoints(points,0,h/2);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial180(w,h/2,
+					clockwise?0:1,
+					clockwise,
+					amount);
+					if(clockwise){
+						FillUtils.movePoints(points,0,h/2);
+						points.push(w,0,0,0,0,h/2);
+					}
+					else
+					points.push(w,h,0,h,0,h/2);
+				}
+				break ;
+			case 3:
+				if(amount<=0.5){
+					amount=amount / 0.5;
+					points=FillUtils.fillRadial180(w,h/2,
+					clockwise?0:1,
+					clockwise,
+					amount);
+					if(clockwise)
+						FillUtils.movePoints(points,0,h/2);
+				}
+				else{
+					amount=(amount-0.5)/ 0.5;
+					points=FillUtils.fillRadial180(w,h/2,
+					clockwise?1:0,
+					clockwise,
+					amount);
+					if(clockwise)
+						points.push(0,h,w,h,w,h/2);
+					else{
+						FillUtils.movePoints(points,0,h/2);
+						points.push(0,0,w,0,w,h/2);
+					}
+				}
+				break ;
+			}
+		return points;
+	}
+
+	return FillUtils;
+})()
+
+
 //class fairygui.display.Frame
 var Frame=(function(){
 	function Frame(){
-		this.rect=null;
 		this.addDelay=0;
 		this.texture=null;
-		this.rect=new Rectangle();
 	}
 
 	__class(Frame,'fairygui.display.Frame');
@@ -495,6 +828,36 @@ var Events=(function(){
 })()
 
 
+//class fairygui.FillMethod
+var FillMethod=(function(){
+	function FillMethod(){}
+	__class(FillMethod,'fairygui.FillMethod');
+	FillMethod.None=0;
+	FillMethod.Horizontal=1;
+	FillMethod.Vertical=2;
+	FillMethod.Radial90=3;
+	FillMethod.Radial180=4;
+	FillMethod.Radial360=5;
+	return FillMethod;
+})()
+
+
+//class fairygui.FillOrigin
+var FillOrigin=(function(){
+	function FillOrigin(){}
+	__class(FillOrigin,'fairygui.FillOrigin');
+	FillOrigin.Top=0;
+	FillOrigin.Bottom=1;
+	FillOrigin.Left=2;
+	FillOrigin.Right=3;
+	FillOrigin.TopLeft=0;
+	FillOrigin.TopRight=1;
+	FillOrigin.BottomLeft=2;
+	FillOrigin.BottomRight=3;
+	return FillOrigin;
+})()
+
+
 /**
 *Use for GImage.flip
 */
@@ -544,8 +907,6 @@ var GObject=(function(){
 		this._dragBounds=null;
 		this._displayObject=null;
 		this._yOffset=0;
-		//Size的实现方式，有两种，0-GObject的w/h等于DisplayObject的w/h。1-GObject的sourceWidth/sourceHeight等于DisplayObject的w/h，剩余部分由scale实现
-		this._sizeImplType=0;
 		this.minWidth=0;
 		this.minHeight=0;
 		this.maxWidth=0;
@@ -695,14 +1056,8 @@ var GObject=(function(){
 	__proto.updatePivotOffset=function(){
 		if(this._displayObject!=null){
 			if(this._displayObject.transform && (this._pivotX!=0 || this._pivotY!=0)){
-				if(this._sizeImplType==0){
-					fairygui.GObject.sHelperPoint.x=this._pivotX*this._width;
-					fairygui.GObject.sHelperPoint.y=this._pivotY*this._height;
-				}
-				else {
-					fairygui.GObject.sHelperPoint.x=this._pivotX*this.sourceWidth;
-					fairygui.GObject.sHelperPoint.y=this._pivotY*this.sourceHeight;
-				};
+				fairygui.GObject.sHelperPoint.x=this._pivotX*this._width;
+				fairygui.GObject.sHelperPoint.y=this._pivotY*this._height;
 				var pt=this._displayObject.transform.transformPoint(fairygui.GObject.sHelperPoint);
 				this._pivotOffsetX=this._pivotX*this._width-pt.x;
 				this._pivotOffsetY=this._pivotY*this._height-pt.y;
@@ -846,6 +1201,7 @@ var GObject=(function(){
 		this.removeFromParent();
 		this._relations.dispose();
 		this._displayObject.destroy();
+		this._displayObject=null;
 	}
 
 	__proto.onClick=function(thisObj,listener,args){
@@ -983,23 +1339,13 @@ var GObject=(function(){
 	}
 
 	__proto.handleSizeChanged=function(){
-		if(this._displayObject!=null){
-			if(this._sizeImplType==0 || this.sourceWidth==0 || this.sourceHeight==0)
-				this._displayObject.size(this._width,this._height);
-			else
-			this._displayObject.scale(this._width/this.sourceWidth*this._scaleX,
-			this._height/this.sourceHeight*this._scaleY);
-		}
+		if(this._displayObject!=null)
+			this._displayObject.size(this._width,this._height);
 	}
 
 	__proto.handleScaleChanged=function(){
-		if(this._displayObject!=null){
-			if(this._sizeImplType==0 || this.sourceWidth==0 || this.sourceHeight==0)
-				this._displayObject.scale(this._scaleX,this._scaleY);
-			else
-			this._displayObject.scale(this._width/this.sourceWidth*this._scaleX,
-			this._height/this.sourceHeight*this._scaleY);
-		}
+		if(this._displayObject!=null)
+			this._displayObject.scale(this._scaleX,this._scaleY);
 	}
 
 	__proto.handleGrayedChanged=function(){
@@ -1452,7 +1798,7 @@ var GObject=(function(){
 
 	__getset(0,__proto,'internalVisible',function(){
 		return this._internalVisible && (!this._group || this._group.internalVisible)
-		&& !this._displayObject._$P["maskParent"];
+		&& !this._displayObject._cacheStyle.maskParent;
 	});
 
 	__getset(0,__proto,'icon',function(){
@@ -2653,6 +2999,8 @@ var RelationItem=(function(){
 	}
 
 	__proto.releaseRefTarget=function(target){
+		if(target.displayObject==null)
+			return;
 		target.off("fui_xy_changed",this,this.__targetXYChanged);
 		target.off("fui_size_changed",this,this.__targetSizeChanged);
 		target.off("fui_size_delay_change",this,this.__targetSizeWillChange);
@@ -5721,10 +6069,10 @@ var TranslationHelper=(function(){
 	}
 
 	TranslationHelper.translateComponent=function(item){
-		if(strings==null)
+		if(TranslationHelper.strings==null)
 			return;
-		var strings=strings[item.owner.id+item.id];
-		if(strings==null)
+		var compStrings=TranslationHelper.strings[item.owner.id+item.id];
+		if(compStrings==null)
 			return;
 		var elementId,value;
 		var buffer=item.rawData;
@@ -5749,7 +6097,7 @@ var TranslationHelper=(function(){
 					type=buffer.readByte();
 			}
 			buffer.seek(curPos,1);
-			if((value=strings[elementId+"-tips"])!=null)
+			if((value=compStrings[elementId+"-tips"])!=null)
 				buffer.writeS(value);
 			buffer.seek(curPos,2);
 			var gearCnt=buffer.getInt16();
@@ -5762,13 +6110,13 @@ var TranslationHelper=(function(){
 					for (k=0;k < valueCnt;k++){
 						page=buffer.readS();
 						if (page !=null){
-							if((value=strings[elementId+"-texts_"+k])!=null)
+							if((value=compStrings[elementId+"-texts_"+k])!=null)
 								buffer.writeS(value);
 							else
 							buffer.skip(2);
 						}
 					}
-					if (buffer.readBool()&& (value=strings[elementId+"-texts_def"])!=null)
+					if (buffer.readBool()&& (value=compStrings[elementId+"-texts_def"])!=null)
 						buffer.writeS(value);
 				}
 				buffer.pos=nextPos;
@@ -5777,11 +6125,11 @@ var TranslationHelper=(function(){
 				case 6:
 				case 7:
 				case 8:{
-						if ((value=strings[elementId])!=null){
+						if ((value=compStrings[elementId])!=null){
 							buffer.seek(curPos,6);
 							buffer.writeS(value);
 						}
-						if ((value=strings[elementId+"-prompt"])!=null){
+						if ((value=compStrings[elementId+"-prompt"])!=null){
 							buffer.seek(curPos,4);
 							buffer.writeS(value);
 						}
@@ -5795,11 +6143,11 @@ var TranslationHelper=(function(){
 							nextPos=buffer.getInt16();
 							nextPos+=buffer.pos;
 							buffer.skip(2);
-							if ((value=strings[elementId+"-"+j])!=null)
+							if ((value=compStrings[elementId+"-"+j])!=null)
 								buffer.writeS(value);
 							else
 							buffer.skip(2);
-							if ((value=strings[elementId+"-"+j+"-0"])!=null)
+							if ((value=compStrings[elementId+"-"+j+"-0"])!=null)
 								buffer.writeS(value);
 							buffer.pos=nextPos;
 						}
@@ -5807,7 +6155,7 @@ var TranslationHelper=(function(){
 					}
 				case 11:{
 						if (buffer.seek(curPos,6)&& buffer.readByte()==type){
-							if ((value=strings[elementId])!=null)
+							if ((value=compStrings[elementId])!=null)
 								buffer.writeS(value);
 							else
 							buffer.skip(2);
@@ -5815,18 +6163,18 @@ var TranslationHelper=(function(){
 							if (buffer.readBool())
 								buffer.skip(4);
 							buffer.skip(4);
-							if (buffer.readBool()&& (value=strings[elementId+"-prompt"])!=null)
+							if (buffer.readBool()&& (value=compStrings[elementId+"-prompt"])!=null)
 								buffer.writeS(value);
 						}
 						break ;
 					}
 				case 12:{
 						if (buffer.seek(curPos,6)&& buffer.readByte()==type){
-							if ((value=strings[elementId])!=null)
+							if ((value=compStrings[elementId])!=null)
 								buffer.writeS(value);
 							else
 							buffer.skip(2);
-							if ((value=strings[elementId+"-0"])!=null)
+							if ((value=compStrings[elementId+"-0"])!=null)
 								buffer.writeS(value);
 						}
 						break ;
@@ -5837,11 +6185,11 @@ var TranslationHelper=(function(){
 							for (j=0;j < itemCount;j++){
 								nextPos=buffer.getInt16();
 								nextPos+=buffer.pos;
-								if ((value=strings[elementId+"-"+j])!=null)
+								if ((value=compStrings[elementId+"-"+j])!=null)
 									buffer.writeS(value);
 								buffer.pos=nextPos;
 							}
-							if ((value=strings[elementId])!=null)
+							if ((value=compStrings[elementId])!=null)
 								buffer.writeS(value);
 						}
 						break ;
@@ -7567,7 +7915,7 @@ var UIPackage=(function(){
 			var pi=this._items[i];
 			if(pi.type==4){
 				if(pi.texture!=null){
-					pi.texture.destroy(true);
+					pi.texture.destroy();
 					pi.texture=null;
 				}
 			}
@@ -7626,8 +7974,11 @@ var UIPackage=(function(){
 				if (!item.decoded){
 					item.decoded=true;
 					var sprite=this._sprites[item.id];
-					if (sprite !=null)
-						item.texture=this.createSpriteTexture(sprite);
+					if (sprite !=null){
+						var atlasTexture=(this.getItemAsset(sprite.atlas));
+						item.texture=Texture.create(atlasTexture,
+						sprite.rect.x,sprite.rect.y,sprite.rect.width,sprite.rect.height);
+					}
 					else
 					item.texture=null;
 				}
@@ -7636,8 +7987,6 @@ var UIPackage=(function(){
 				if (!item.decoded){
 					item.decoded=true;
 					item.texture=AssetProxy.inst.getRes(item.file);
-					if(!UIConfig$1.textureLinearSampling)
-						item.texture.isLinearSampling=false;
 				}
 				return item.texture;
 			case 5:
@@ -7664,12 +8013,6 @@ var UIPackage=(function(){
 			}
 	}
 
-	__proto.createSpriteTexture=function(sprite){
-		var atlasTexture=(this.getItemAsset(sprite.atlas));
-		return Texture.createFromTexture(atlasTexture,
-		sprite.rect.x,sprite.rect.y,sprite.rect.width,sprite.rect.height);
-	}
-
 	__proto.loadMovieClip=function(item){
 		var buffer=item.rawData;
 		buffer.seek(0,0);
@@ -7682,18 +8025,24 @@ var UIPackage=(function(){
 		var spriteId;
 		var frame;
 		var sprite;
+		var fx=NaN;
+		var fy=NaN;
 		for (var i=0;i < frameCount;i++){
 			var nextPos=buffer.getInt16();
 			nextPos+=buffer.pos;
 			frame=new Frame();
-			frame.rect.x=buffer.getInt32();
-			frame.rect.y=buffer.getInt32();
-			frame.rect.width=buffer.getInt32();
-			frame.rect.height=buffer.getInt32();
+			fx=buffer.getInt32();
+			fy=buffer.getInt32();
+			buffer.getInt32();
+			buffer.getInt32();
 			frame.addDelay=buffer.getInt32();
 			spriteId=buffer.readS();
-			if (spriteId !=null && (sprite=this._sprites[spriteId])!=null)
-				frame.texture=this.createSpriteTexture(sprite);
+			if (spriteId !=null && (sprite=this._sprites[spriteId])!=null){
+				var atlasTexture=(this.getItemAsset(sprite.atlas));
+				frame.texture=Texture.create(atlasTexture,
+				sprite.rect.x,sprite.rect.y,sprite.rect.width,sprite.rect.height,
+				fx,fy,item.width,item.height);
+			}
 			item.frames[i]=frame;
 			buffer.pos=nextPos;
 		}
@@ -7749,7 +8098,7 @@ var UIPackage=(function(){
 				}
 			}
 			else{
-				bg.texture=Texture.createFromTexture(mainTexture,
+				bg.texture=Texture.create(mainTexture,
 				bx+mainSprite.rect.x,by+mainSprite.rect.y,bg.width,bg.height);
 			}
 			if (font.ttf)
@@ -7798,7 +8147,7 @@ var UIPackage=(function(){
 	UIPackage.addPackage=function(resKey,descData){
 		if(!descData){
 			descData=AssetProxy.inst.getRes(resKey+"."+UIConfig$1.packageFileExtension);
-			if(!descData || descData.length==0)
+			if(!descData || descData.byteLength==0)
 				throw new Error("package resource not ready: "+resKey);
 		};
 		var buffer=new ByteBuffer(descData);
@@ -8780,6 +9129,37 @@ var ByteBuffer=(function(_super){
 })(Byte)
 
 
+//class fairygui.utils.ChildHitArea extends laya.utils.HitArea
+var ChildHitArea=(function(_super){
+	function ChildHitArea(child,reversed){
+		this._child=null;
+		this._reversed=false;
+		ChildHitArea.__super.call(this);
+		this._child=child;
+		this._reversed=reversed;
+		if(this._reversed)
+			this.unHit=child.hitArea.hit;
+		else
+		this.hit=child.hitArea.hit;
+	}
+
+	__class(ChildHitArea,'fairygui.utils.ChildHitArea',_super);
+	var __proto=ChildHitArea.prototype;
+	__proto.contains=function(x,y){
+		var tPos;
+		tPos=Point.TEMP;
+		tPos.setTo(0,0);
+		tPos=this._child.toParentPoint(tPos);
+		if (this._reversed)
+			return !HitArea._isHitGraphic(x-tPos.x,y-tPos.y,this.unHit);
+		else
+		return HitArea._isHitGraphic(x-tPos.x,y-tPos.y,this.hit);
+	}
+
+	return ChildHitArea;
+})(HitArea)
+
+
 //class fairygui.utils.PixelHitTest extends laya.utils.HitArea
 var PixelHitTest=(function(_super){
 	function PixelHitTest(data,offsetX,offsetY){
@@ -8800,7 +9180,7 @@ var PixelHitTest=(function(_super){
 
 	__class(PixelHitTest,'fairygui.utils.PixelHitTest',_super);
 	var __proto=PixelHitTest.prototype;
-	__proto.isHit=function(x,y){
+	__proto.contains=function(x,y){
 		x=Math.floor((x / this.scaleX-this.offsetX)*this._data.scale);
 		y=Math.floor((y / this.scaleY-this.offsetY)*this._data.scale);
 		if (x < 0 || y < 0 || x >=this._data.pixelWidth)
@@ -9112,6 +9492,7 @@ var GComponent=(function(_super){
 		this._sortingChildCount=0;
 		this._opaque=false;
 		this._applyingController=null;
+		this._mask=null;
 		this._margin=null;
 		this._trackBounds=false;
 		this._boundsChanged=false;
@@ -9130,6 +9511,7 @@ var GComponent=(function(_super){
 		this._transitions=[];
 		this._margin=new Margin();
 		this._alignOffset=new Point();
+		this._opaque=false;
 	}
 
 	__class(GComponent,'fairygui.GComponent',_super);
@@ -9163,6 +9545,7 @@ var GComponent=(function(_super){
 			obj.dispose();
 		}
 		this._boundsChanged=false;
+		this._mask=null;
 		_super.prototype.dispose.call(this);
 	}
 
@@ -9614,6 +9997,32 @@ var GComponent=(function(_super){
 		return-1;
 	}
 
+	__proto.setMask=function(value,reversed){
+		if(this._mask && this._mask!=value){
+			if(this._mask.blendMode=="destination-out")
+				this._mask.blendMode=null;
+		}
+		this._mask=value;
+		if(!this._mask){
+			this._displayObject.mask=null;
+			if((this._displayObject.hitArea instanceof fairygui.utils.ChildHitArea ))
+				this._displayObject.hitArea=null;
+			return;
+		}
+		if(this._mask.hitArea){
+			this._displayObject.hitArea=new ChildHitArea(this._mask,reversed);
+			this._displayObject.mouseThrough=false;
+			this._displayObject.hitTestPrior=true;
+		}
+		if(reversed){
+			this._displayObject.mask=null;
+			this._displayObject.cacheAs="bitmap";
+			this._mask.blendMode="destination-out";
+		}
+		else
+		this._displayObject.mask=this._mask;
+	}
+
 	__proto.updateHitArea=function(){
 		if((this._displayObject.hitArea instanceof fairygui.utils.PixelHitTest )){
 			var hitTest=(this._displayObject.hitArea);
@@ -9622,9 +10031,7 @@ var GComponent=(function(_super){
 			if(this.sourceHeight!=0)
 				hitTest.scaleY=this.height/this.sourceHeight;
 		}
-		else{
-			if(this._displayObject.hitArea==null)
-				this._displayObject.hitArea=new Rectangle();
+		else if((this._displayObject.hitArea instanceof laya.maths.Rectangle )){
 			this._displayObject.hitArea.setTo(0,0,this.width,this.height);
 		}
 	}
@@ -9972,8 +10379,7 @@ var GComponent=(function(_super){
 		this.opaque=buffer.readBool();
 		var maskId=buffer.getInt16();
 		if (maskId !=-1){
-			this.mask=this.getChildAt(maskId).displayObject;
-			buffer.readBool();
+			this.setMask(this.getChildAt(maskId).displayObject,buffer.readBool());
 		};
 		var hitTestId=buffer.readS();
 		if (hitTestId !=null){
@@ -10065,15 +10471,22 @@ var GComponent=(function(_super){
 	});
 
 	__getset(0,__proto,'opaque',function(){
-		return this._displayObject.hitArea!=null;
+		return this._opaque;
 		},function(value){
-		if (value){
-			this.updateHitArea();
-			this._displayObject.mouseThrough=false;
-		}
-		else{
-			this._displayObject.hitArea=null;
-			this._displayObject.mouseThrough=true;
+		if(this._opaque!=value){
+			this._opaque=value;
+			if (this._opaque){
+				if(this._displayObject.hitArea==null)
+					this._displayObject.hitArea=new Rectangle();
+				if((this._displayObject.hitArea instanceof laya.maths.Rectangle ))
+					this._displayObject.hitArea.setTo(0,0,this.width,this.height);
+				this._displayObject.mouseThrough=false;
+			}
+			else {
+				if((this._displayObject.hitArea instanceof laya.maths.Rectangle ))
+					this._displayObject.hitArea=null;
+				this._displayObject.mouseThrough=true;
+			}
 		}
 	});
 
@@ -10106,9 +10519,9 @@ var GComponent=(function(_super){
 	});
 
 	__getset(0,__proto,'mask',function(){
-		return this._displayObject.mask;
+		return this._mask;
 		},function(value){
-		this._displayObject.mask=value;
+		this.setMask(value,false);
 	});
 
 	__getset(0,__proto,'viewHeight',function(){
@@ -10642,6 +11055,7 @@ var GGraph=(function(_super){
 		this._lineColor=null;
 		this._fillColor=null;
 		this._cornerRadius=null;
+		this._hitArea=null;
 		GGraph.__super.call(this);
 		this._type=0;
 		this._lineSize=1;
@@ -10755,6 +11169,9 @@ var GGraph=(function(_super){
 	__proto.createDisplayObject=function(){
 		_super.prototype.createDisplayObject.call(this);
 		this._displayObject.mouseEnabled=false;
+		this._hitArea=new HitArea();
+		this._hitArea.hit=this._displayObject.graphics;
+		this._displayObject.hitArea=this._hitArea;
 	}
 
 	__proto.handleSizeChanged=function(){
@@ -11192,16 +11609,13 @@ var GGroup=(function(_super){
 var GImage=(function(_super){
 	function GImage(){
 		this.image=null;
-		this._color=null;
 		this._flip=0;
 		GImage.__super.call(this);
-		this._color="#FFFFFF";
 	}
 
 	__class(GImage,'fairygui.GImage',_super);
 	var __proto=GImage.prototype;
 	Laya.imps(__proto,{"fairygui.gears.IColorGear":true})
-	__proto.applyColor=function(){}
 	__proto.createDisplayObject=function(){
 		this._displayObject=this.image=new Image$1();
 		this.image.mouseEnabled=false;
@@ -11217,7 +11631,7 @@ var GImage=(function(_super){
 		this.image.scale9Grid=this.packageItem.scale9Grid;
 		this.image.scaleByTile=this.packageItem.scaleByTile;
 		this.image.tileGridIndice=this.packageItem.tileGridIndice;
-		this.image.tex=this.packageItem.texture;
+		this.image.texture=this.packageItem.texture;
 		this.setSize(this.sourceWidth,this.sourceHeight);
 	}
 
@@ -11231,28 +11645,33 @@ var GImage=(function(_super){
 		}
 	}
 
-	__proto.handleSizeChanged=function(){
-		if(this.image.tex!=null){
-			this.image.scaleTexture(this.width/this.sourceWidth,this.height/this.sourceHeight);
-		}
-	}
-
 	__proto.setup_beforeAdd=function(buffer,beginPos){
 		_super.prototype.setup_beforeAdd.call(this,buffer,beginPos);
 		buffer.seek(beginPos,5);
 		if (buffer.readBool())
 			this.color=buffer.readColorS();
 		this.flip=buffer.readByte();
+		this.image.fillMethod=buffer.readByte();
+		if (this.image.fillMethod !=0){
+			this.image.fillOrigin=buffer.readByte();
+			this.image.fillClockwise=buffer.readBool();
+			this.image.fillAmount=buffer.getFloat32();
+		}
 	}
 
 	__getset(0,__proto,'color',function(){
-		return this._color;
+		return this.image.color;
 		},function(value){
-		if(this._color !=value){
-			this._color=value;
+		if(this.image.color !=value){
+			this.image.color=value;
 			this.updateGear(4);
-			this.applyColor();
 		}
+	});
+
+	__getset(0,__proto,'fillClockwise',function(){
+		return this.image.fillClockwise;
+		},function(value){
+		this.image.fillClockwise=value;
 	});
 
 	/**
@@ -11274,6 +11693,24 @@ var GImage=(function(_super){
 			this.setScale(sx,sy);
 			this.handleXYChanged();
 		}
+	});
+
+	__getset(0,__proto,'fillMethod',function(){
+		return this.image.fillMethod;
+		},function(value){
+		this.image.fillMethod=value;
+	});
+
+	__getset(0,__proto,'fillOrigin',function(){
+		return this.image.fillOrigin;
+		},function(value){
+		this.image.fillOrigin=value;
+	});
+
+	__getset(0,__proto,'fillAmount',function(){
+		return this.image.fillAmount;
+		},function(value){
+		this.image.fillAmount=value;
 	});
 
 	return GImage;
@@ -11389,9 +11826,6 @@ var GLoader=(function(_super){
 		this._fill=0;
 		this._shrinkOnly=false;
 		this._showErrorSign=false;
-		this._playing=false;
-		this._frame=0;
-		this._color=null;
 		this._contentItem=null;
 		this._contentSourceWidth=0;
 		this._contentSourceHeight=0;
@@ -11402,13 +11836,11 @@ var GLoader=(function(_super){
 		this._content2=null;
 		this._updatingLayout=false;
 		GLoader.__super.call(this);
-		this._playing=true;
 		this._url="";
 		this._fill=0;
 		this._align="left";
 		this._valign="top";
 		this._showErrorSign=true;
-		this._color="#FFFFFF";
 	}
 
 	__class(GLoader,'fairygui.GLoader',_super);
@@ -11416,14 +11848,14 @@ var GLoader=(function(_super){
 	Laya.imps(__proto,{"fairygui.gears.IAnimationGear":true,"fairygui.gears.IColorGear":true})
 	__proto.createDisplayObject=function(){
 		_super.prototype.createDisplayObject.call(this);
+		this._content=new MovieClip$1();
+		this._displayObject.addChild(this._content);
 		this._displayObject.mouseEnabled=true;
 	}
 
 	__proto.dispose=function(){
-		if(this._contentItem==null && ((this._content instanceof fairygui.display.Image ))){
-			var texture=(this._content).tex;
-			if(texture !=null)
-				this.freeExternal(texture);
+		if(this._contentItem==null && this._content.texture!=null){
+			this.freeExternal(this._content.texture);
 		}
 		if(this._content2!=null)
 			this._content2.dispose();
@@ -11431,11 +11863,9 @@ var GLoader=(function(_super){
 	}
 
 	__proto.advance=function(timeInMiniseconds){
-		if((this._content instanceof fairygui.display.MovieClip ))
-			(this._content).advance(timeInMiniseconds);
+		this._content.advance(timeInMiniseconds);
 	}
 
-	__proto.applyColor=function(){}
 	__proto.loadContent=function(){
 		this.clearContent();
 		if (!this._url)
@@ -11457,35 +11887,22 @@ var GLoader=(function(_super){
 					this.setErrorState();
 				}
 				else {
-					if(!((this._content instanceof fairygui.display.Image ))){
-						this._content=new Image$1();
-						this._displayObject.addChild(this._content);
-					}
-					else
-					this._displayObject.addChild(this._content);
-					(this._content).tex=this._contentItem.texture;
-					(this._content).scale9Grid=this._contentItem.scale9Grid;
-					(this._content).scaleByTile=this._contentItem.scaleByTile;
-					(this._content).tileGridIndice=this._contentItem.tileGridIndice;
+					this._content.texture=this._contentItem.texture;
+					this._content.scale9Grid=this._contentItem.scale9Grid;
+					this._content.scaleByTile=this._contentItem.scaleByTile;
+					this._content.tileGridIndice=this._contentItem.tileGridIndice;
 					this._contentSourceWidth=this._contentItem.width;
 					this._contentSourceHeight=this._contentItem.height;
 					this.updateLayout();
 				}
 			}
 			else if(this._contentItem.type==1){
-				if(!((this._content instanceof fairygui.display.MovieClip ))){
-					this._content=new MovieClip$1();
-					this._displayObject.addChild(this._content);
-				}
-				else
-				this._displayObject.addChild(this._content);
 				this._contentSourceWidth=this._contentItem.width;
 				this._contentSourceHeight=this._contentItem.height;
-				(this._content).interval=this._contentItem.interval;
-				(this._content).swing=this._contentItem.swing;
-				(this._content).repeatDelay=this._contentItem.repeatDelay;
-				(this._content).frames=this._contentItem.frames;
-				(this._content).boundsRect=new Rectangle(0,0,this._contentSourceWidth,this._contentSourceHeight);
+				this._content.interval=this._contentItem.interval;
+				this._content.swing=this._contentItem.swing;
+				this._content.repeatDelay=this._contentItem.repeatDelay;
+				this._content.frames=this._contentItem.frames;
 				this.updateLayout();
 			}
 			else if(this._contentItem.type==3){
@@ -11517,15 +11934,9 @@ var GLoader=(function(_super){
 
 	__proto.freeExternal=function(texture){}
 	__proto.onExternalLoadSuccess=function(texture){
-		if(!((this._content instanceof fairygui.display.Image ))){
-			this._content=new Image$1();
-			this._displayObject.addChild(this._content);
-		}
-		else
-		this._displayObject.addChild(this._content);
-		(this._content).tex=texture;
-		(this._content).scale9Grid=null;
-		(this._content).scaleByTile=false;
+		this._content.texture=texture;
+		this._content.scale9Grid=null;
+		this._content.scaleByTile=false;
 		this._contentSourceWidth=texture.width;
 		this._contentSourceHeight=texture.height;
 		this.updateLayout();
@@ -11565,7 +11976,7 @@ var GLoader=(function(_super){
 	}
 
 	__proto.updateLayout=function(){
-		if (this._content2==null && this._content==null){
+		if (this._content2==null && this._content.texture==null && this._content.frames==null){
 			if (this._autoSize){
 				this._updatingLayout=true;
 				this.setSize(50,30);
@@ -11588,12 +11999,8 @@ var GLoader=(function(_super){
 					this._content2.setXY(0,0);
 					this._content2.setScale(1,1);
 				}
-				else{
-					this._content.x=0;
-					this._content.y=0;
-					this._content.scaleX=1;
-					this._content.scaleY=1;
-				}
+				else
+				this._content.pos(0,0);
 				return;
 			}
 		};
@@ -11630,10 +12037,8 @@ var GLoader=(function(_super){
 		}
 		if(this._content2!=null)
 			this._content2.setScale(sx,sy);
-		else if ((this._content instanceof fairygui.display.Image ))
-		(this._content).scaleTexture(sx,sy);
 		else
-		this._content.scale(sx,sy);
+		this._content.size(this._contentWidth,this._contentHeight);
 		var nx=NaN,ny=NaN;
 		if (this._align=="center")
 			nx=Math.floor((this.width-this._contentWidth)/ 2);
@@ -11649,21 +12054,17 @@ var GLoader=(function(_super){
 		ny=0;
 		if(this._content2!=null)
 			this._content2.setXY(nx,ny);
-		else{
-			this._content.x=nx;
-			this._content.y=ny;
-		}
+		else
+		this._content.pos(nx,ny);
 	}
 
 	__proto.clearContent=function(){
 		this.clearErrorState();
-		if (this._content !=null && this._content.parent !=null)
-			this._displayObject.removeChild(this._content);
-		if(this._contentItem==null && ((this._content instanceof fairygui.display.Image ))){
-			var texture=(this._content).tex;
-			if(texture !=null)
-				this.freeExternal(texture);
+		if(this._contentItem==null && this._content.texture!=null){
+			this.freeExternal(this._content.texture);
 		}
+		this._content.texture=null;
+		this._content.frames=null;
 		if(this._content2!=null){
 			this._content2.dispose();
 			this._content2=null;
@@ -11690,8 +12091,8 @@ var GLoader=(function(_super){
 		this._shrinkOnly=buffer.readBool();
 		this._autoSize=buffer.readBool();
 		this._showErrorSign=buffer.readBool();
-		this._playing=buffer.readBool();
-		this._frame=buffer.getInt32();
+		this._content.playing=buffer.readBool();
+		this._content.frame=buffer.getInt32();
 		if (buffer.readBool())
 			this.color=buffer.readColorS();
 		var fillMethod=buffer.readByte();
@@ -11702,12 +12103,10 @@ var GLoader=(function(_super){
 	}
 
 	__getset(0,__proto,'frame',function(){
-		return this._frame;
+		return this._content.frame;
 		},function(value){
-		if (this._frame !=value){
-			this._frame=value;
-			if ((this._content instanceof fairygui.display.MovieClip ))
-				(this._content).frame=value;
+		if (this._content.frame !=value){
+			this._content.frame=value;
 			this.updateGear(5);
 		}
 	});
@@ -11774,7 +12173,6 @@ var GLoader=(function(_super){
 		}
 	});
 
-	//todo:
 	__getset(0,__proto,'showErrorSign',function(){
 		return this._showErrorSign;
 		},function(value){
@@ -11791,33 +12189,26 @@ var GLoader=(function(_super){
 	});
 
 	__getset(0,__proto,'playing',function(){
-		return this._playing;
+		return this._content.playing;
 		},function(value){
-		if (this._playing !=value){
-			this._playing=value;
-			if ((this._content instanceof fairygui.display.MovieClip ))
-				(this._content).playing=value;
+		if (this._content.playing !=value){
+			this._content.playing=value;
 			this.updateGear(5);
 		}
 	});
 
 	__getset(0,__proto,'timeScale',function(){
-		if((this._content instanceof fairygui.display.MovieClip ))
-			return (this._content).timeScale;
-		else
-		return 1;
+		return this._content.timeScale;
 		},function(value){
-		if((this._content instanceof fairygui.display.MovieClip ))
-			(this._content).timeScale=value;
+		this._content.timeScale=value;
 	});
 
 	__getset(0,__proto,'color',function(){
-		return this._color;
+		return this._content.color;
 		},function(value){
-		if(this._color !=value){
-			this._color=value;
+		if(this._content.color !=value){
+			this._content.color=value;
 			this.updateGear(4);
-			this.applyColor();
 		}
 	});
 
@@ -12749,6 +13140,8 @@ var GButton=(function(_super){
 		if (this._down){
 			Laya.stage.off("mouseup",this,this.__mouseup);
 			this._down=false;
+			if(this._displayObject==null)
+				return;
 			if(this._mode==0){
 				if(this.grayed && this._buttonController && this._buttonController.hasPage("disabled"))
 					this.setState("disabled");
@@ -13517,8 +13910,6 @@ var GList=(function(_super){
 		this._virtualItems=null;
 		this._eventLocked=false;
 		this.itemInfoVer=0;
-		//用来标志item是否在本次处理中已经被重用了
-		this.enterCounter=0;
 		GList.__super.call(this);
 		this._trackBounds=true;
 		this._pool=new GObjectPool();
@@ -13551,7 +13942,7 @@ var GList=(function(_super){
 	}
 
 	__proto.returnToPool=function(obj){
-		obj.displayObject.cacheAsBitmap=false;
+		obj.displayObject.cacheAs="none";
 		this._pool.returnObject(obj);
 	}
 
@@ -13579,7 +13970,10 @@ var GList=(function(_super){
 
 	__proto.removeChildAt=function(index,dispose){
 		(dispose===void 0)&& (dispose=false);
-		var child=_super.prototype.removeChildAt.call(this,index,dispose);
+		var child=_super.prototype.removeChildAt.call(this,index);
+		if(dispose)
+			child.dispose();
+		else
 		child.off("click",this,this.__clickItem);
 		return child;
 	}
@@ -14116,12 +14510,12 @@ var GList=(function(_super){
 			var pos=0;
 			var i=0;
 			if (this._layout==0 || this._layout==2){
-				for (i=0;i < index;i+=this._curLineItemCount)
+				for (i=this._curLineItemCount-1;i < index;i+=this._curLineItemCount)
 				pos+=this._virtualItems[i].height+this._lineGap;
 				rect=new Rectangle(0,pos,this._itemSize.x,ii.height);
 			}
 			else if (this._layout==1 || this._layout==3){
-				for (i=0;i < index;i+=this._curLineItemCount)
+				for (i=this._curLineItemCount-1;i < index;i+=this._curLineItemCount)
 				pos+=this._virtualItems[i].width+this._columnGap;
 				rect=new Rectangle(pos,0,ii.width,this._itemSize.y);
 			}
@@ -14179,9 +14573,9 @@ var GList=(function(_super){
 			if (this._loop && this._numItems > 0){
 				var j=this._firstIndex % this._numItems;
 				if (index >=j)
-					index=this._firstIndex+(index-j);
+					index=index-j;
 				else
-				index=this._firstIndex+this._numItems+(j-index);
+				index=this._numItems-j+index;
 			}
 			else
 			index-=this._firstIndex;
@@ -14475,13 +14869,28 @@ var GList=(function(_super){
 	__proto.handleScroll=function(forceUpdate){
 		if (this._eventLocked)
 			return;
-		this.enterCounter=0;
 		if (this._layout==0 || this._layout==2){
-			this.handleScroll1(forceUpdate);
+			var enterCounter=0;
+			while(this.handleScroll1(forceUpdate)){
+				enterCounter++;
+				forceUpdate=false;
+				if(enterCounter>20){
+					console.log("FairyGUI: list will never be filled as the item renderer function always returns a different size.");
+					break ;
+				}
+			}
 			this.handleArchOrder1();
 		}
 		else if (this._layout==1 || this._layout==3){
-			this.handleScroll2(forceUpdate);
+			enterCounter=0;
+			while(this.handleScroll2(forceUpdate)){
+				enterCounter++;
+				forceUpdate=false;
+				if(enterCounter>20){
+					console.log("FairyGUI: list will never be filled as the item renderer function always returns a different size.");
+					break ;
+				}
+			}
 			this.handleArchOrder2();
 		}
 		else{
@@ -14491,11 +14900,6 @@ var GList=(function(_super){
 	}
 
 	__proto.handleScroll1=function(forceUpdate){
-		this.enterCounter++;
-		if (this.enterCounter > 3){
-			console.log("FairyGUI: list will never be filled as the item renderer function always returns a different size.");
-			return;
-		};
 		var pos=this._scrollPane.scrollingPosY;
 		var max=pos+this._scrollPane.viewHeight;
 		var end=max==this._scrollPane.contentHeight;
@@ -14503,13 +14907,13 @@ var GList=(function(_super){
 		var newFirstIndex=this.getIndexOnPos1(forceUpdate);
 		pos=fairygui.GList.pos_param;
 		if (newFirstIndex==this._firstIndex && !forceUpdate)
-			return;
+			return false;
 		var oldFirstIndex=this._firstIndex;
 		this._firstIndex=newFirstIndex;
 		var curIndex=newFirstIndex;
 		var forward=oldFirstIndex > newFirstIndex;
-		var oldCount=this.numChildren;
-		var lastIndex=oldFirstIndex+oldCount-1;
+		var childCount=this.numChildren;
+		var lastIndex=oldFirstIndex+childCount-1;
 		var reuseIndex=forward ? lastIndex :oldFirstIndex;
 		var curX=0,curY=pos;
 		var needRender=false;
@@ -14605,7 +15009,7 @@ var GList=(function(_super){
 			}
 			curIndex++;
 		}
-		for (i=0;i < oldCount;i++){
+		for (i=0;i < childCount;i++){
 			ii=this._virtualItems[oldFirstIndex+i];
 			if (ii.updateFlag !=this.itemInfoVer && ii.obj !=null){
 				if ((ii.obj instanceof fairygui.GButton ))
@@ -14614,18 +15018,21 @@ var GList=(function(_super){
 				ii.obj=null;
 			}
 		}
+		childCount=this._children.length;
+		for (i=0;i < childCount;i++){
+			var obj=this._virtualItems[newFirstIndex+i].obj;
+			if (this._children[i] !=obj)
+				this.setChildIndex(obj,i);
+		}
 		if (deltaSize !=0 || firstItemDeltaSize !=0)
 			this._scrollPane.changeContentSizeOnScrolling(0,deltaSize,0,firstItemDeltaSize);
 		if (curIndex > 0 && this.numChildren > 0 && this._container.y < 0 && this.getChildAt(0).y >-this._container.y)
-			this.handleScroll1(false);
+			return true;
+		else
+		return false;
 	}
 
 	__proto.handleScroll2=function(forceUpdate){
-		this.enterCounter++;
-		if (this.enterCounter > 3){
-			console.log("FairyGUI: list will never be filled as the item renderer function always returns a different size.");
-			return;
-		};
 		var pos=this._scrollPane.scrollingPosX;
 		var max=pos+this._scrollPane.viewWidth;
 		var end=pos==this._scrollPane.contentWidth;
@@ -14633,13 +15040,13 @@ var GList=(function(_super){
 		var newFirstIndex=this.getIndexOnPos2(forceUpdate);
 		pos=fairygui.GList.pos_param;
 		if (newFirstIndex==this._firstIndex && !forceUpdate)
-			return;
+			return false;
 		var oldFirstIndex=this._firstIndex;
 		this._firstIndex=newFirstIndex;
 		var curIndex=newFirstIndex;
 		var forward=oldFirstIndex > newFirstIndex;
-		var oldCount=this.numChildren;
-		var lastIndex=oldFirstIndex+oldCount-1;
+		var childCount=this.numChildren;
+		var lastIndex=oldFirstIndex+childCount-1;
 		var reuseIndex=forward ? lastIndex :oldFirstIndex;
 		var curX=pos,curY=0;
 		var needRender=false;
@@ -14735,7 +15142,7 @@ var GList=(function(_super){
 			}
 			curIndex++;
 		}
-		for (i=0;i < oldCount;i++){
+		for (i=0;i < childCount;i++){
 			ii=this._virtualItems[oldFirstIndex+i];
 			if (ii.updateFlag !=this.itemInfoVer && ii.obj !=null){
 				if ((ii.obj instanceof fairygui.GButton ))
@@ -14744,10 +15151,18 @@ var GList=(function(_super){
 				ii.obj=null;
 			}
 		}
+		childCount=this._children.length;
+		for (i=0;i < childCount;i++){
+			var obj=this._virtualItems[newFirstIndex+i].obj;
+			if (this._children[i] !=obj)
+				this.setChildIndex(obj,i);
+		}
 		if (deltaSize !=0 || firstItemDeltaSize !=0)
 			this._scrollPane.changeContentSizeOnScrolling(deltaSize,0,firstItemDeltaSize,0);
 		if (curIndex > 0 && this.numChildren > 0 && this._container.x < 0 && this.getChildAt(0).x >-this._container.x)
-			this.handleScroll2(false);
+			return true;
+		else
+		return false;
 	}
 
 	__proto.handleScroll3=function(forceUpdate){
@@ -15605,16 +16020,19 @@ var GRichTextField=(function(_super){
 		},function(value){
 		if (this._color !=value){
 			this._color=value;
-			this.div.color=value;
+			this.div.style.color=value;
 			if (this._gearColor.controller)
 				this._gearColor.updateState();
 		}
 	});
 
 	__getset(0,__proto,'font',function(){
-		return this.div.style.fontFamily;
+		return this.div.style.font;
 		},function(value){
-		this.div.style.fontFamily=value;
+		if(value)
+			this.div.style.font=value;
+		else
+		this.div.style.font=UIConfig$1.defaultFont;
 	});
 
 	__getset(0,__proto,'leading',function(){
@@ -15728,19 +16146,35 @@ var GProgressBar=(function(_super){
 		var fullWidth=this.width-this._barMaxWidthDelta;
 		var fullHeight=this.height-this._barMaxHeightDelta;
 		if(!this._reverse){
-			if(this._barObjectH)
+			if(this._barObjectH){
+				if (((this._barObjectH instanceof fairygui.GImage ))&& (this._barObjectH).fillMethod !=0)
+					(this._barObjectH).fillAmount=percent;
+				else
 				this._barObjectH.width=Math.round(fullWidth *percent);
-			if(this._barObjectV)
+			}
+			if(this._barObjectV){
+				if (((this._barObjectV instanceof fairygui.GImage ))&& (this._barObjectV).fillMethod !=0)
+					(this._barObjectV).fillAmount=percent;
+				else
 				this._barObjectV.height=Math.round(fullHeight *percent);
+			}
 		}
 		else {
 			if(this._barObjectH){
-				this._barObjectH.width=Math.round(fullWidth *percent);
-				this._barObjectH.x=this._barStartX+(fullWidth-this._barObjectH.width);
+				if (((this._barObjectH instanceof fairygui.GImage ))&& (this._barObjectH).fillMethod !=0)
+					(this._barObjectH).fillAmount=1-percent;
+				else{
+					this._barObjectH.width=Math.round(fullWidth *percent);
+					this._barObjectH.x=this._barStartX+(fullWidth-this._barObjectH.width);
+				}
 			}
 			if(this._barObjectV){
-				this._barObjectV.height=Math.round(fullHeight *percent);
-				this._barObjectV.y=this._barStartY+(fullHeight-this._barObjectV.height);
+				if (((this._barObjectV instanceof fairygui.GImage ))&& (this._barObjectV).fillMethod !=0)
+					(this._barObjectV).fillAmount=1-percent;
+				else{
+					this._barObjectV.height=Math.round(fullHeight *percent);
+					this._barObjectV.y=this._barStartY+(fullHeight-this._barObjectV.height);
+				}
 			}
 		}
 		if((this._aniObject instanceof fairygui.GMovieClip ))
@@ -17034,53 +17468,56 @@ var Window$2=(function(_super){
 //class fairygui.display.Image extends laya.display.Sprite
 var Image$1=(function(_super){
 	function Image(){
-		this._tex=null;
+		this._source=null;
 		this._scaleByTile=false;
 		this._scale9Grid=null;
 		this._tileGridIndice=0;
-		this._textureScaleX=1;
-		this._textureScaleY=1;
-		this._needRebuild=false;
+		this._needRebuild=0;
+		this._fillMethod=0;
+		this._fillOrigin=0;
+		this._fillAmount=0;
+		this._fillClockwise=false;
+		this._mask=null;
+		this._color=null;
 		Image.__super.call(this);
 		this.mouseEnabled=false;
+		this._color="#FFFFFF";
 	}
 
 	__class(Image,'fairygui.display.Image',_super,'Image$1');
 	var __proto=Image.prototype;
-	__proto.scaleTexture=function(sx,sy){
-		if(this._textureScaleX!=sx || this._textureScaleY!=sy){
-			this._textureScaleX=sx;
-			this._textureScaleY=sy;
-			if(this._tex)
-				this.size(this._tex.width*sx,this._tex.height*sy);
-			this.markChanged();
-		}
-	}
-
-	__proto.markChanged=function(){
+	__proto.markChanged=function(flag){
 		if(!this._needRebuild){
-			this._needRebuild=true;
+			this._needRebuild=flag;
 			Laya.timer.callLater(this,this.rebuild);
 		}
+		else
+		this._needRebuild |=flag;
 	}
 
 	__proto.rebuild=function(){
-		this._needRebuild=false;
+		if((this._needRebuild & 1)!=0)
+			this.doDraw();
+		if((this._needRebuild & 2)!=0 && this._fillMethod!=0)
+			this.doFill();
+		this._needRebuild=0;
+	}
+
+	__proto.doDraw=function(){
 		var w=this.width;
 		var h=this.height;
 		var g=this.graphics;
-		if(this._tex==null || w==0 || h==0){
-			g.clear();
+		var tex=this._source;
+		g.clear();
+		if(tex==null || w==0 || h==0){
 			return;
 		}
 		if(this._scaleByTile){
-			g.clear();
-			g.fillTexture(this._tex,0,0,w,h);
+			g.fillTexture(tex,0,0,w,h);
 		}
 		else if(this._scale9Grid!=null){
-			g.clear();
-			var tw=this._tex.width;
-			var th=this._tex.height;
+			var tw=tex.width;
+			var th=tex.height;
 			var left=this._scale9Grid.x;
 			var right=Math.max(tw-this._scale9Grid.right,0);
 			var top=this._scale9Grid.y;
@@ -17108,18 +17545,18 @@ var Image$1=(function(_super){
 			};
 			var centerWidth=Math.max(w-left-right,0);
 			var centerHeight=Math.max(h-top-bottom,0);
-			left && top && g.drawTexture(fairygui.display.Image.getTexture(this._tex,0,0,left,top),0,0,left,top);
-			right && top && g.drawTexture(fairygui.display.Image.getTexture(this._tex,tw-right,0,right,top),w-right,0,right,top);
-			left && bottom && g.drawTexture(fairygui.display.Image.getTexture(this._tex,0,th-bottom,left,bottom),0,h-bottom,left,bottom);
-			right && bottom && g.drawTexture(fairygui.display.Image.getTexture(this._tex,tw-right,th-bottom,right,bottom),w-right,h-bottom,right,bottom);
-			centerWidth && top && this.drawTexture(0,fairygui.display.Image.getTexture(this._tex,left,0,tw-left-right,top),left,0,centerWidth,top);
-			centerWidth && bottom && this.drawTexture(1,fairygui.display.Image.getTexture(this._tex,left,th-bottom,tw-left-right,bottom),left,h-bottom,centerWidth,bottom);
-			centerHeight && left && this.drawTexture(2,fairygui.display.Image.getTexture(this._tex,0,top,left,th-top-bottom),0,top,left,centerHeight);
-			centerHeight && right && this.drawTexture(3,fairygui.display.Image.getTexture(this._tex,tw-right,top,right,th-top-bottom),w-right,top,right,centerHeight);
-			centerWidth && centerHeight && this.drawTexture(4,fairygui.display.Image.getTexture(this._tex,left,top,tw-left-right,th-top-bottom),left,top,centerWidth,centerHeight);
+			left && top && g.drawImage(fairygui.display.Image.getTexture(tex,0,0,left,top),0,0,left,top);
+			right && top && g.drawImage(fairygui.display.Image.getTexture(tex,tw-right,0,right,top),w-right,0,right,top);
+			left && bottom && g.drawImage(fairygui.display.Image.getTexture(tex,0,th-bottom,left,bottom),0,h-bottom,left,bottom);
+			right && bottom && g.drawImage(fairygui.display.Image.getTexture(tex,tw-right,th-bottom,right,bottom),w-right,h-bottom,right,bottom);
+			centerWidth && top && this.drawTexture(0,fairygui.display.Image.getTexture(tex,left,0,tw-left-right,top),left,0,centerWidth,top);
+			centerWidth && bottom && this.drawTexture(1,fairygui.display.Image.getTexture(tex,left,th-bottom,tw-left-right,bottom),left,h-bottom,centerWidth,bottom);
+			centerHeight && left && this.drawTexture(2,fairygui.display.Image.getTexture(tex,0,top,left,th-top-bottom),0,top,left,centerHeight);
+			centerHeight && right && this.drawTexture(3,fairygui.display.Image.getTexture(tex,tw-right,top,right,th-top-bottom),w-right,top,right,centerHeight);
+			centerWidth && centerHeight && this.drawTexture(4,fairygui.display.Image.getTexture(tex,left,top,tw-left-right,th-top-bottom),left,top,centerWidth,centerHeight);
 		}
 		else {
-			g.cleanByTexture(this._tex,0,0,w,h);
+			g.drawImage(tex,0,0,w,h);
 		}
 	}
 
@@ -17127,29 +17564,49 @@ var Image$1=(function(_super){
 		(width===void 0)&& (width=0);
 		(height===void 0)&& (height=0);
 		if(part==-1 || (this._tileGridIndice & (1<<part))==0)
-			this.graphics.drawTexture(tex,x,y,width,height);
+			this.graphics.drawImage(tex,x,y,width,height);
 		else
 		this.graphics.fillTexture(tex,x,y,width,height);
 	}
 
-	__getset(0,__proto,'tex',function(){
-		return this._tex;
-		},function(value){
-		if(this._tex!=value){
-			this._tex=value;
-			if(this._tex)
-				this.size(this._tex.width*this._textureScaleX,this._tex.height*this._textureScaleY);
-			else
-			this.size(0,0);
-			this.markChanged();
+	__proto.doFill=function(){
+		var w=this.width;
+		var h=this.height;
+		var g=this._mask.graphics;
+		g.clear();
+		if(w==0 || h==0)
+			return;
+		var points=FillUtils.fill(w,h,this._fillMethod,this._fillOrigin,this._fillClockwise,this._fillAmount);
+		if(points==null){
+			this.mask=null;
+			this.mask=this._mask;
+			return;
+		}
+		g.drawPoly(0,0,points,"#FFFFFF");
+	}
+
+	__getset(0,__proto,'width',_super.prototype._$get_width,function(value){
+		if (this._width!==value){
+			Laya.superSet(Sprite,this,'width',value);
+			this.markChanged(1);
 		}
 	});
 
-	__getset(0,__proto,'scale9Grid',function(){
-		return this._scale9Grid;
+	__getset(0,__proto,'fillOrigin',function(){
+		return this._fillOrigin;
 		},function(value){
-		this._scale9Grid=value;
-		this.markChanged();
+		if(this._fillOrigin!=value){
+			this._fillOrigin=value;
+			if(this._fillMethod!=0)
+				this.markChanged(2);
+		}
+	});
+
+	__getset(0,__proto,'height',_super.prototype._$get_height,function(value){
+		if (this._height!==value){
+			Laya.superSet(Sprite,this,'height',value);
+			this.markChanged(1);
+		}
 	});
 
 	__getset(0,__proto,'scaleByTile',function(){
@@ -17157,8 +17614,31 @@ var Image$1=(function(_super){
 		},function(value){
 		if(this._scaleByTile!=value){
 			this._scaleByTile=value;
-			this.markChanged();
+			this.markChanged(1);
 		}
+	});
+
+	__getset(0,__proto,'texture',function(){
+		return this._source;
+		},function(value){
+		if(this._source!=value){
+			this._source=value;
+			if(this.width==0){
+				if(this._source)
+					this.size(this._source.width,this._source.height);
+				else
+				this.size(0,0);
+			}
+			this.repaint();
+			this.markChanged(1);
+		}
+	});
+
+	__getset(0,__proto,'scale9Grid',function(){
+		return this._scale9Grid;
+		},function(value){
+		this._scale9Grid=value;
+		this.markChanged(1);
 	});
 
 	__getset(0,__proto,'tileGridIndice',function(){
@@ -17166,7 +17646,55 @@ var Image$1=(function(_super){
 		},function(value){
 		if(this._tileGridIndice!=value){
 			this._tileGridIndice=value;
-			this.markChanged();
+			this.markChanged(1);
+		}
+	});
+
+	__getset(0,__proto,'fillMethod',function(){
+		return this._fillMethod;
+		},function(value){
+		if(this._fillMethod!=value){
+			this._fillMethod=value;
+			if(this._fillMethod!=0){
+				if(!this._mask){
+					this._mask=new Sprite();
+					this._mask.mouseEnabled=false;
+				}
+				this.mask=this._mask;
+				this.markChanged(2);
+			}
+			else if(this.mask){
+				this._mask.graphics.clear();
+				this.mask=null;
+			}
+		}
+	});
+
+	__getset(0,__proto,'fillClockwise',function(){
+		return this._fillClockwise;
+		},function(value){
+		if(this._fillClockwise!=value){
+			this._fillClockwise=value;
+			if(this._fillMethod!=0)
+				this.markChanged(2);
+		}
+	});
+
+	__getset(0,__proto,'fillAmount',function(){
+		return this._fillAmount;
+		},function(value){
+		if(this._fillAmount!=value){
+			this._fillAmount=value;
+			if(this._fillMethod!=0)
+				this.markChanged(2);
+		}
+	});
+
+	__getset(0,__proto,'color',function(){
+		return this._color;
+		},function(value){
+		if(this._color !=value){
+			this._color=value;
 		}
 	});
 
@@ -17174,11 +17702,9 @@ var Image$1=(function(_super){
 		if (width <=0)width=1;
 		if (height <=0)height=1;
 		tex.$_GID || (tex.$_GID=Utils.getGID())
-		var key=tex.$_GID+"."+x+"."+y+"."+width+"."+height;
-		var texture=WeakObject.I.get(key);
-		if (!texture||!texture.source){
+		var texture;
+		if (!texture||!texture._getSource()){
 			texture=Texture.createFromTexture(tex,x,y,width,height);
-			WeakObject.I.set(key,texture);
 		}
 		return texture;
 	}
@@ -17187,20 +17713,17 @@ var Image$1=(function(_super){
 })(Sprite)
 
 
-//class fairygui.display.MovieClip extends laya.display.Sprite
+//class fairygui.display.MovieClip extends fairygui.display.Image
 var MovieClip$1=(function(_super){
 	function MovieClip(){
 		this.interval=0;
 		this.swing=false;
 		this.repeatDelay=0;
 		this.timeScale=1;
-		this._$3__texture=null;
-		this._needRebuild=false;
 		this._playing=true;
 		this._frameCount=0;
 		this._frames=null;
 		this._frame=0;
-		this._boundsRect=null;
 		this._start=0;
 		this._end=0;
 		this._times=0;
@@ -17379,10 +17902,11 @@ var MovieClip$1=(function(_super){
 	__proto.drawFrame=function(){
 		if (this._frameCount>0 && this._frame < this._frames.length){
 			var frame=this._frames[this._frame];
-			this.graphics.cleanByTexture(frame.texture,frame.rect.x,frame.rect.y);
+			this.texture=frame.texture;
 		}
 		else
-		this.graphics.clear();
+		this.texture=null;
+		this.rebuild();
 	}
 
 	__proto.checkTimer=function(){
@@ -17405,20 +17929,23 @@ var MovieClip$1=(function(_super){
 		return this._frames;
 		},function(value){
 		this._frames=value;
-		if (this._frames !=null)
+		this._scaleByTile=false;
+		this._scale9Grid=null;
+		if (this._frames !=null){
 			this._frameCount=this._frames.length;
+			if(this._end==-1 || this._end > this._frameCount-1)
+				this._end=this._frameCount-1;
+			if(this._endAt==-1 || this._endAt > this._frameCount-1)
+				this._endAt=this._frameCount-1;
+			if(this._frame < 0 || this._frame > this._frameCount-1)
+				this._frame=this._frameCount-1;
+			this._frameElapsed=0;
+			this._repeatedCount=0;
+			this._reversed=false;
+		}
 		else
 		this._frameCount=0;
-		if(this._end==-1 || this._end > this._frameCount-1)
-			this._end=this._frameCount-1;
-		if(this._endAt==-1 || this._endAt > this._frameCount-1)
-			this._endAt=this._frameCount-1;
-		if(this._frame < 0 || this._frame > this._frameCount-1)
-			this._frame=this._frameCount-1;
 		this.drawFrame();
-		this._frameElapsed=0;
-		this._repeatedCount=0;
-		this._reversed=false;
 		this.checkTimer();
 	});
 
@@ -17447,26 +17974,9 @@ var MovieClip$1=(function(_super){
 		}
 	});
 
-	__getset(0,__proto,'boundsRect',function(){
-		return this._boundsRect;
-		},function(value){
-		this._boundsRect=value;
-	});
-
 	return MovieClip;
-})(Sprite)
+})(Image$1)
 
 
-	Laya.__init([GList,Transition,AsyncOperation,UIPackage,RelationItem,GBasicTextField,GearColor,EaseManager,GearAnimation,GearLook,GearSize]);
+	Laya.__init([GBasicTextField,GList,AsyncOperation,GearLook,UIPackage,GearColor,Transition,EaseManager,GearAnimation,GearSize,RelationItem]);
 })(window,document,Laya);
-
-if (typeof define === 'function' && define.amd){
-	define('laya.core', ['require', "exports"], function(require, exports) {
-        'use strict';
-        Object.defineProperty(exports, '__esModule', { value: true });
-        for (var i in Laya) {
-			var o = Laya[i];
-            o && o.__isclass && (exports[i] = o);
-        }
-    });
-}

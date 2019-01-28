@@ -6,28 +6,21 @@ package fairygui {
 	public class GImage extends GObject implements IColorGear {
 		public var image: Image;
 		
-		private var _color: String;
 		private var _flip: int;
 		
 		public function GImage() {
 			super();
-			this._color = "#FFFFFF";
 		}
 		
 		public function get color(): String {
-			return this._color;
+			return this.image.color;
 		}
 		
 		public function set color(value: String):void {
-			if(this._color != value) {
-				this._color = value;
+			if(this.image.color != value) {
+				this.image.color = value;
 				this.updateGear(4);
-				this.applyColor();
 			}
-		}
-		
-		private function applyColor():void {
-			//not supported yet
 		}
 		
 		/**
@@ -54,6 +47,46 @@ package fairygui {
 			}
 		}
 		
+		public function get fillMethod():int
+		{
+			return image.fillMethod;
+		}
+		
+		public function set fillMethod(value:int):void
+		{
+			image.fillMethod = value;
+		}
+		
+		public function get fillOrigin():int
+		{
+			return image.fillOrigin;
+		}
+		
+		public function set fillOrigin(value:int):void
+		{
+			image.fillOrigin = value;
+		}
+		
+		public function get fillClockwise():Boolean
+		{
+			return image.fillClockwise;
+		}
+		
+		public function set fillClockwise(value:Boolean):void
+		{
+			image.fillClockwise = value;
+		}
+		
+		public function get fillAmount():Number
+		{
+			return image.fillAmount;
+		}
+		
+		public function set fillAmount(value:Number):void
+		{
+			image.fillAmount = value;
+		}
+		
 		override protected function createDisplayObject(): void {
 			this._displayObject = this.image = new Image();
 			this.image.mouseEnabled = false;
@@ -70,7 +103,7 @@ package fairygui {
 			this.image.scale9Grid = this.packageItem.scale9Grid;
 			this.image.scaleByTile = this.packageItem.scaleByTile;
 			this.image.tileGridIndice = this.packageItem.tileGridIndice;
-			this.image.tex = this.packageItem.texture;
+			this.image.texture = this.packageItem.texture;
 			this.setSize(this.sourceWidth, this.sourceHeight);
 		}
 		
@@ -86,12 +119,7 @@ package fairygui {
 			}
 		}
 		
-		override protected function handleSizeChanged(): void {
-			if(this.image.tex!=null) {
-				this.image.scaleTexture(this.width/this.sourceWidth, this.height/this.sourceHeight);
-			}
-		}
-		
+
 		override public function setup_beforeAdd(buffer:ByteBuffer, beginPos:int): void {
 			super.setup_beforeAdd(buffer, beginPos);
 			
@@ -100,7 +128,13 @@ package fairygui {
 			if (buffer.readBool())
 				this.color = buffer.readColorS();
 			this.flip = buffer.readByte();
-
+			this.image.fillMethod = buffer.readByte();
+			if (this.image.fillMethod != 0)
+			{
+				this.image.fillOrigin = buffer.readByte();
+				this.image.fillClockwise = buffer.readBool();
+				this.image.fillAmount = buffer.getFloat32();
+			}
 		}
 	}
 }
